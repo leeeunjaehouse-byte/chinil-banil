@@ -30,7 +30,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1
 
 /* header */
 header{padding:28px 0 8px;display:flex;align-items:center;justify-content:space-between}
-.brand{font-family:var(--serif);font-weight:700;font-size:17px}
+.brand{font-family:var(--serif);font-weight:700;font-size:17px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .brand span{color:var(--accent)}
 .gov-tag{font-size:11px;color:var(--ink-soft);border:1px solid var(--line);border-radius:100px;padding:3px 10px}
 
@@ -107,7 +107,7 @@ footer li::before{content:"—";margin-right:8px;color:#c9c1b2}
 <div class="wrap">
 
 <header>
-  <div class="brand">친일<span>반일</span></div>
+  <div class="brand" id="brand" role="button" aria-label="홈으로">친일<span>반일</span></div>
   <div class="gov-tag">공식 기록 조회</div>
 </header>
 
@@ -238,6 +238,7 @@ $('form').addEventListener('submit',async e=>{
     </div>`;
     return;
   }
+  mark();
   out.innerHTML=
     section('친일 기록','c',mc,cardChinil,q)+
     section('독립운동 기록','d',md,cardDokrip,q);
@@ -264,6 +265,7 @@ async function browse(kind){
   }
   list.sort((a,b)=>a.name.localeCompare(b.name,'ko'));
   B={kind,list,idx:0};
+  mark();
   const title=kind==='c'?'친일 기록 전체':'독립운동 기록 전체';
   out.innerHTML=`<div class="section-title"><span class="dot ${kind}"></span>${title} <span class="count">${list.length.toLocaleString()}건 · 가나다순</span></div><div id="blist"></div><button class="more" id="bmore" hidden></button>`;
   $('bmore').addEventListener('click',renderMore);
@@ -281,6 +283,18 @@ function renderMore(){
 }
 $('statC').addEventListener('click',()=>browse('c'));
 $('statD').addEventListener('click',()=>browse('d'));
+
+/* 홈버튼 + 뒤로가기 */
+function home(){
+  $('q').value='';$('fOrigin').value='';$('fDecade').value='';
+  B=null;$('results').innerHTML='';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function mark(){if(!location.hash)history.pushState(null,'','#r')}
+$('brand').addEventListener('click',()=>{
+  if(location.hash)history.back();else home();
+});
+window.addEventListener('popstate',home);
 </script>
 </body>
 </html>
