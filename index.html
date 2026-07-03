@@ -24,8 +24,8 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-html,body{overflow-x:hidden;max-width:100%}
-body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;letter-spacing:-0.01em}
+html,body{overflow-x:clip;max-width:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;letter-spacing:-0.01em;touch-action:pan-y;overscroll-behavior-x:none}
 .wrap{max-width:520px;margin:0 auto;padding:0 20px 80px}
 
 /* header */
