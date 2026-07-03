@@ -47,6 +47,10 @@ header{padding:28px 0 8px;display:flex;align-items:center;justify-content:space-
 .search-box input::placeholder{color:#b5aea1}
 .search-box button{border:0;background:var(--ink);color:#fff;font-family:var(--serif);font-weight:600;font-size:15px;border-radius:10px;padding:11px 18px;cursor:pointer}
 .hint{margin-top:8px;font-size:12px;color:var(--ink-soft)}
+.filters{display:flex;gap:8px;margin-top:10px;align-items:center}
+.filters select{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:13px;font-family:var(--sans);color:var(--ink);-webkit-appearance:none;appearance:none}
+.filters-note{font-size:11px;color:#a29a8b;margin-top:5px}
+.card-foot a{color:var(--accent);text-decoration:none;font-weight:500;white-space:nowrap}
 
 /* notice */
 .notice{background:#F3EEE4;border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:6px 0 26px}
@@ -111,6 +115,11 @@ footer li::before{content:"—";margin-right:8px;color:#c9c1b2}
     <button type="submit">찾기</button>
   </form>
   <p class="hint" id="hint">데이터 불러오는 중…</p>
+  <div class="filters">
+    <select id="fOrigin"><option value="">본적 (전체)</option></select>
+    <select id="fDecade"><option value="">출생연대 (전체)</option></select>
+  </div>
+  <p class="filters-note">필터는 본적·생년 정보가 있는 독립운동 기록에 적용됩니다.</p>
 </section>
 
 <section class="notice">
@@ -153,7 +162,14 @@ function ensure(){
     loading=Promise.all([
       fetch('data/chinil.json').then(r=>r.ok?r.json():[]),
       fetch('data/dokrip.json').then(r=>r.ok?r.json():[])
-    ]).then(([c,d])=>{CH=c;DK=d;});
+    ]).then(([c,d])=>{
+      CH=c;DK=d;
+      const regs=[...new Set(d.map(p=>(p.origin||'').split(' ')[0]).filter(Boolean))].sort();
+      $('fOrigin').innerHTML='<option value="">본적 (전체)</option>'+regs.map(r=>`<option>${r}</option>`).join('');
+      let ops='<option value="">출생연대 (전체)</option>';
+      for(let y=1840;y<=1930;y+=10) ops+=`<option value="${y}">${y}년대</option>`;
+      $('fDecade').innerHTML=ops;
+    });
   }
   return loading;
 }
@@ -170,7 +186,7 @@ function cardChinil(p){
     <div class="name">${esc(p.name)}${p.hanja?`<span class="hanja">${esc(p.hanja)}</span>`:''}</div>
     <div class="badges">${badges}</div>
     ${meta?`<div class="meta">${meta}</div>`:''}
-    <div class="card-foot">동명이인일 수 있습니다 — 한자·분야·시기를 함께 확인하세요.</div>
+    <div class="card-foot">동명이인일 수 있습니다 — 한자·분야·시기를 확인하세요. <a href="https://www.google.com/search?q=${encodeURIComponent('"'+p.name+'" '+(p.hanja||'')+' 친일인명사전 OR 친일반민족행위')}" target="_blank" rel="noopener">원문 기록 검색 ↗</a></div>
   </div>`;
 }
 function cardDokrip(p){
@@ -179,7 +195,7 @@ function cardDokrip(p){
     <div class="name">${esc(p.name)}${p.hanja?`<span class="hanja">${esc(p.hanja)}</span>`:''}</div>
     <div class="badges"><span class="badge honor">${esc(p.honor||'독립유공 서훈')}</span></div>
     ${meta?`<div class="meta">${meta}</div>`:''}
-    <div class="card-foot">동명이인일 수 있습니다 — 한자·생몰년을 함께 확인하세요.</div>
+    <div class="card-foot">동명이인일 수 있습니다 — 본적·생몰년을 확인하세요. <a href="https://www.google.com/search?q=${encodeURIComponent('site:e-gonghun.mpva.go.kr "'+p.name+'"')}" target="_blank" rel="noopener">공훈사료관 검색 ↗</a></div>
   </div>`;
 }
 
@@ -193,17 +209,25 @@ function section(title,cls,items,render,q){
   return html;
 }
 
-$('form').addEventListener('submit',e=>{
+const rank=(p,q)=>p.name===q?0:(p.name&&p.name.startsWith(q)?1:2);
+const hit=(p,q)=>(p.name&&p.name.includes(q))||(p.hanja&&p.hanja.includes(q));
+$('form').addEventListener('submit',async e=>{
   e.preventDefault();
   const q=$('q').value.trim();
   const out=$('results');
   if(q.length<2){out.innerHTML='<div class="empty"><p>두 글자 이상 입력해 주세요.</p></div>';return;}
-  const mc=CH.filter(p=>(p.name&&p.name.includes(q))||(p.hanja&&p.hanja.includes(q)));
-  const md=DK.filter(p=>(p.name&&p.name.includes(q))||(p.hanja&&p.hanja.includes(q)));
+  if(!CH){out.innerHTML='<div class="loading">기록을 불러오는 중…</div>';await ensure();}
+  const fo=$('fOrigin').value, fd=$('fDecade').value?parseInt($('fDecade').value):null;
+  const mc=CH.filter(p=>hit(p,q)).sort((a,b)=>rank(a,q)-rank(b,q));
+  const md=DK.filter(p=>hit(p,q)).filter(p=>{
+    if(fo && !(p.origin&&p.origin.startsWith(fo))) return false;
+    if(fd!==null){const y=parseInt(p.birth_death);if(!(y>=fd&&y<fd+10))return false;}
+    return true;
+  }).sort((a,b)=>rank(a,q)-rank(b,q));
   if(!mc.length&&!md.length){
     out.innerHTML=`<div class="empty">
       <h4>‘${esc(q)}’ — 수록 기록을 찾지 못했습니다</h4>
-      <p>이 이름은 현재 서비스가 보유한 명단(친일 기록·독립유공 서훈)에 없습니다.<br>명단에 없다는 것이 친일 여부나 독립운동 여부에 대한 판단을 의미하지 않습니다.</p>
+      <p>이 이름은 현재 서비스가 보유한 명단(친일 기록·독립유공 서훈)에 없습니다.<br>명단에 없다는 것이 친일 여부나 독립운동 여부에 대한 판단을 의미하지 않습니다.${(fo||fd!==null)?'<br><b>적용 중인 필터를 해제하면 결과가 나올 수 있습니다.</b>':''}</p>
     </div>`;
     return;
   }
@@ -212,6 +236,8 @@ $('form').addEventListener('submit',e=>{
     section('독립운동 기록','d',md,cardDokrip,q);
   out.scrollIntoView({behavior:'smooth',block:'start'});
 });
+$('fOrigin').addEventListener('change',()=>{if($('q').value.trim().length>=2)$('form').requestSubmit()});
+$('fDecade').addEventListener('change',()=>{if($('q').value.trim().length>=2)$('form').requestSubmit()});
 </script>
 </body>
 </html>
