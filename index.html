@@ -131,7 +131,7 @@ footer li::before{content:"—";margin-right:8px;color:#c9c1b2}
   <ul>
     <li>친일반민족행위자 1,006명 — 친일반민족행위진상규명위원회 결정 (2006–2009, 정부 공식)</li>
     <li>친일인명사전 수록자 명단 — 민족문제연구소 편찬 (2009, 민간)</li>
-    <li>독립유공자 — 건국훈장 서훈 기록 (국가보훈부 공훈 데이터 기반)</li>
+    <li>독립유공자 18,776명 전체 — 국가보훈부 「독립유공자 명단」 공공데이터 (data.go.kr, 2026-06-10 기준)</li>
   </ul>
   <p style="margin-top:14px">본 서비스는 어떠한 인물에 대해서도 자체적인 평가·판정을 하지 않으며, 공개된 기록의 수록 여부를 조회하는 도구입니다. 명단에 없다는 사실이 그 인물의 행적에 대한 증명이 되지 않습니다.</p>
 </footer>
@@ -139,25 +139,25 @@ footer li::before{content:"—";margin-right:8px;color:#c9c1b2}
 </div>
 
 <script>
-let CH=[], DK=[];
+const COUNTS={chinil:4692,dokrip:18776};
+let CH=null, DK=null, loading=null;
 const $=id=>document.getElementById(id);
 
-async function load(){
-  try{
-    const [c,d]=await Promise.all([
+$('nChinil').textContent=COUNTS.chinil.toLocaleString();
+$('nDokrip').textContent=COUNTS.dokrip.toLocaleString();
+$('stats').hidden=false;
+$('hint').textContent='이름 두 글자 이상을 입력하세요. 한자 검색도 가능합니다.';
+
+function ensure(){
+  if(!loading){
+    loading=Promise.all([
       fetch('data/chinil.json').then(r=>r.ok?r.json():[]),
       fetch('data/dokrip.json').then(r=>r.ok?r.json():[])
-    ]);
-    CH=c; DK=d;
-    $('nChinil').textContent=CH.length.toLocaleString();
-    $('nDokrip').textContent=DK.length.toLocaleString();
-    $('stats').hidden=false;
-    $('hint').textContent='이름 두 글자 이상을 입력하세요. 한자 검색도 가능합니다.';
-  }catch(e){
-    $('hint').textContent='데이터를 불러오지 못했습니다. 새로고침해 주세요.';
+    ]).then(([c,d])=>{CH=c;DK=d;});
   }
+  return loading;
 }
-load();
+$('q').addEventListener('focus',()=>{ensure()},{once:true});
 
 const srcLabel={gov:'정부 결정 명단 (1,006명)',dict:'친일인명사전 수록'};
 
@@ -174,7 +174,7 @@ function cardChinil(p){
   </div>`;
 }
 function cardDokrip(p){
-  const meta=[p.movement?`운동 계열 · ${esc(p.movement)}`:null, p.year?`포상 연도 · ${esc(p.year)}`:null, p.birth_death?`생몰 · ${esc(p.birth_death)}`:null].filter(Boolean).join('<br>');
+  const meta=[p.movement?`운동 계열 · ${esc(p.movement)}`:null, p.origin?`본적 · ${esc(p.origin)}`:null, p.year?`포상 연도 · ${esc(p.year)}`:null, p.birth_death?`생몰 · ${esc(p.birth_death)}`:null].filter(Boolean).join('<br>');
   return `<div class="card">
     <div class="name">${esc(p.name)}${p.hanja?`<span class="hanja">${esc(p.hanja)}</span>`:''}</div>
     <div class="badges"><span class="badge honor">${esc(p.honor||'독립유공 서훈')}</span></div>
