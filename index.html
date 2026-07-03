@@ -24,6 +24,7 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
+html,body{overflow-x:hidden;max-width:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;letter-spacing:-0.01em}
 .wrap{max-width:520px;margin:0 auto;padding:0 20px 80px}
 
@@ -47,6 +48,9 @@ header{padding:28px 0 8px;display:flex;align-items:center;justify-content:space-
 .search-box input::placeholder{color:#b5aea1}
 .search-box button{border:0;background:var(--ink);color:#fff;font-family:var(--serif);font-weight:600;font-size:15px;border-radius:10px;padding:11px 18px;cursor:pointer}
 .hint{margin-top:8px;font-size:12px;color:var(--ink-soft)}
+.filters{display:flex;gap:8px;margin-top:10px}
+.filters select{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13.5px;font-family:var(--sans);color:var(--ink);-webkit-appearance:none;appearance:none}
+.filters-note{font-size:11.5px;color:#a29a8b;margin-top:6px}
 .filters{display:flex;gap:8px;margin-top:10px;align-items:center}
 .filters select{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:13px;font-family:var(--sans);color:var(--ink);-webkit-appearance:none;appearance:none}
 .filters-note{font-size:11px;color:#a29a8b;margin-top:5px}
@@ -60,9 +64,12 @@ header{padding:28px 0 8px;display:flex;align-items:center;justify-content:space-
 
 /* stats */
 .stats{display:flex;gap:10px;margin-bottom:26px}
-.stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;min-width:0}
 .stat b{font-family:var(--serif);font-size:22px;display:block}
 .stat span{font-size:12px;color:var(--ink-soft)}
+.stat .go{display:block;font-size:11px;color:#a29a8b;margin-top:3px}
+.card{overflow-wrap:anywhere}
+.card-foot a{color:var(--accent);text-decoration:none}
 .stat.c b{color:var(--accent)}
 .stat.d b{color:var(--blue)}
 
@@ -129,8 +136,8 @@ footer li::before{content:"—";margin-right:8px;color:#c9c1b2}
 </section>
 
 <section class="stats" id="stats" hidden>
-  <div class="stat c"><b id="nChinil">–</b><span>친일 기록 수록 인명</span></div>
-  <div class="stat d"><b id="nDokrip">–</b><span>독립유공 서훈 인명</span></div>
+  <div class="stat c" id="statC"><b id="nChinil">–</b><span>친일 기록 수록 인명</span><span class="go">탭하여 전체 목록 보기 →</span></div>
+  <div class="stat d" id="statD"><b id="nDokrip">–</b><span>독립유공 서훈 인명</span><span class="go">탭하여 전체 목록 보기 →</span></div>
 </section>
 
 <main id="results"></main>
@@ -236,8 +243,44 @@ $('form').addEventListener('submit',async e=>{
     section('독립운동 기록','d',md,cardDokrip,q);
   out.scrollIntoView({behavior:'smooth',block:'start'});
 });
-$('fOrigin').addEventListener('change',()=>{if($('q').value.trim().length>=2)$('form').requestSubmit()});
-$('fDecade').addEventListener('change',()=>{if($('q').value.trim().length>=2)$('form').requestSubmit()});
+$('fOrigin').addEventListener('change',()=>{if($('q').value.trim().length>=2)$('form').requestSubmit();else if(B&&B.kind==='d')browse('d')});
+$('fDecade').addEventListener('change',()=>{if($('q').value.trim().length>=2)$('form').requestSubmit();else if(B&&B.kind==='d')browse('d')});
+
+/* 전체 목록 브라우징 */
+const PAGE=50;
+let B=null;
+async function browse(kind){
+  const out=$('results');
+  out.innerHTML='<div class="loading">기록을 불러오는 중…</div>';
+  await ensure();
+  let list=(kind==='c'?CH:DK).slice();
+  if(kind==='d'){
+    const fo=$('fOrigin').value, fd=$('fDecade').value?parseInt($('fDecade').value):null;
+    list=list.filter(p=>{
+      if(fo && !(p.origin&&p.origin.startsWith(fo))) return false;
+      if(fd!==null){const y=parseInt(p.birth_death);if(!(y>=fd&&y<fd+10))return false;}
+      return true;
+    });
+  }
+  list.sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+  B={kind,list,idx:0};
+  const title=kind==='c'?'친일 기록 전체':'독립운동 기록 전체';
+  out.innerHTML=`<div class="section-title"><span class="dot ${kind}"></span>${title} <span class="count">${list.length.toLocaleString()}건 · 가나다순</span></div><div id="blist"></div><button class="more" id="bmore" hidden></button>`;
+  $('bmore').addEventListener('click',renderMore);
+  renderMore();
+  out.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function renderMore(){
+  const render=B.kind==='c'?cardChinil:cardDokrip;
+  const chunk=B.list.slice(B.idx,B.idx+PAGE);
+  $('blist').insertAdjacentHTML('beforeend',chunk.map(render).join(''));
+  B.idx+=chunk.length;
+  const m=$('bmore');
+  if(B.idx<B.list.length){m.hidden=false;m.textContent=`더 보기 (${(B.list.length-B.idx).toLocaleString()}명 남음)`;}
+  else m.hidden=true;
+}
+$('statC').addEventListener('click',()=>browse('c'));
+$('statD').addEventListener('click',()=>browse('d'));
 </script>
 </body>
 </html>
