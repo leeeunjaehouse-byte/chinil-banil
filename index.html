@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>친일반일 — 우리 조상님은 친일이었을까, 반일이었을까</title>
 <meta name="description" content="친일파·독립운동가 공식 기록 검색. 판정하지 않습니다. 기록을 그대로 보여드립니다.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="친일반일">
+<meta property="og:title" content="우리 조상님은 친일이었을까, 반일이었을까">
+<meta property="og:description" content="정부 공식 친일반민족행위자 명단과 독립유공자 18,776명 서훈 기록을 이름으로 검색하세요. 판정 없이, 기록 그대로.">
+<meta property="og:image" content="https://www.chinil-banil.com/og.png">
+<meta property="og:url" content="https://www.chinil-banil.com">
+<meta name="twitter:card" content="summary_large_image">
+<script defer src="/_vercel/insights/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -93,6 +101,7 @@ header{padding:28px 0 8px;display:flex;align-items:center;justify-content:space-
 .empty h4{font-family:var(--serif);font-size:16px;margin-bottom:8px}
 .empty p{font-size:13px;color:var(--ink-soft);line-height:1.7}
 .more{width:100%;border:1px solid var(--line);background:transparent;border-radius:12px;padding:12px;font-size:13.5px;color:var(--ink-soft);cursor:pointer;font-family:var(--sans)}
+.share{width:100%;margin-top:14px;padding:13px;border-radius:12px;border:1.5px solid var(--ink);background:var(--card);font-family:var(--serif);font-weight:600;font-size:14.5px;cursor:pointer;color:var(--ink)}
 
 /* footer */
 footer{margin-top:56px;border-top:1px solid var(--line);padding-top:24px}
@@ -150,6 +159,9 @@ footer li::before{content:"—";margin-right:8px;color:#c9c1b2}
     <li>독립유공자 18,776명 전체 — 국가보훈부 「독립유공자 명단」 공공데이터 (data.go.kr, 2026-06-10 기준)</li>
   </ul>
   <p style="margin-top:14px">본 서비스는 어떠한 인물에 대해서도 자체적인 평가·판정을 하지 않으며, 공개된 기록의 수록 여부를 조회하는 도구입니다. 명단에 없다는 사실이 그 인물의 행적에 대한 증명이 되지 않습니다.</p>
+  <h4 style="margin-top:24px">운영 원칙 · 이의제기</h4>
+  <p>본 서비스는 공적 기록의 인용자로서 다음 원칙을 지킵니다. ① 출처가 확인된 공개 기록만 수록하고 출처를 명시합니다. ② 자체 판정·평가·서술을 추가하지 않습니다. ③ 기록 오류나 이의제기가 접수되면 원출처와 대조 확인 후 신속히 정정합니다.</p>
+  <p style="margin-top:8px">수록 내용에 대한 정정 요청·이의제기: <a href="mailto:leeeunjae.house@gmail.com?subject=[친일반일] 이의제기" style="color:var(--accent)">leeeunjae.house@gmail.com</a> — 대상 인물명, 근거 자료를 함께 보내주시면 확인 후 회신드립니다.</p>
 </footer>
 
 </div>
@@ -241,9 +253,21 @@ $('form').addEventListener('submit',async e=>{
   mark();
   out.innerHTML=
     section('친일 기록','c',mc,cardChinil,q)+
-    section('독립운동 기록','d',md,cardDokrip,q);
+    section('독립운동 기록','d',md,cardDokrip,q)+
+    `<button class="share" data-q="${esc(q)}">이 검색 결과 공유하기</button>`;
   out.scrollIntoView({behavior:'smooth',block:'start'});
 });
+$('results').addEventListener('click',e=>{
+  const b=e.target.closest('.share'); if(b) doShare(b.dataset.q);
+});
+async function doShare(q){
+  const url=location.origin+'/?q='+encodeURIComponent(q);
+  const data={title:'친일반일',text:`‘${q}’ — 친일·독립운동 공식 기록 검색 결과`,url};
+  if(navigator.share){try{await navigator.share(data)}catch(e){}}
+  else{try{await navigator.clipboard.writeText(url);alert('링크가 복사되었습니다')}catch(e){prompt('링크를 복사하세요',url)}}
+}
+const q0=new URLSearchParams(location.search).get('q');
+if(q0){$('q').value=q0;$('form').requestSubmit();}
 $('fOrigin').addEventListener('change',()=>{if($('q').value.trim().length>=2)$('form').requestSubmit();else if(B&&B.kind==='d')browse('d')});
 $('fDecade').addEventListener('change',()=>{if($('q').value.trim().length>=2)$('form').requestSubmit();else if(B&&B.kind==='d')browse('d')});
 
