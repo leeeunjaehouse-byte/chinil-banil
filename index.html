@@ -200,7 +200,7 @@ function esc(s){return String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt
 
 function cardChinil(p){
   const badges=(p.sources||[]).map(s=>`<span class="badge ${s}">${srcLabel[s]||s}</span>`).join('');
-  const meta=[p.field?`분야 · ${esc(p.field)}`:null, p.period?`조사 시기 · ${esc(p.period)}`:null].filter(Boolean).join('<br>');
+  const meta=[p.field?`분야 · ${esc(p.field)}`:null, p.birth_death?`생몰 · ${esc(p.birth_death)}`:null, p.period?`조사 시기 · ${esc(p.period)}`:null].filter(Boolean).join('<br>');
   return `<div class="card">
     <div class="name">${esc(p.name)}${p.hanja?`<span class="hanja">${esc(p.hanja)}</span>`:''}</div>
     <div class="badges">${badges}</div>
